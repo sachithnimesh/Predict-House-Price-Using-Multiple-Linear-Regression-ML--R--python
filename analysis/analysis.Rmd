@@ -1,0 +1,167 @@
+---
+title: "Analysis"
+output:
+  word_document: default
+  html_document: default
+date: "2023-10-22"
+---
+
+```{r}
+data=read.csv('data.csv')
+```
+
+```{r}
+str(data)
+```
+```{r}
+install.packages("corrplot")
+
+```
+
+```{r}
+head(data)
+```
+
+```{r}
+# Load the corrplot package
+library(corrplot)
+
+# Select the variables of interest
+variables_of_interest <- data[, c('Price','Rooms'		,	'Distance',	'Postcode',	'Bedroom2',	'Bathroom'	,'Car'	,'Landsize',	'BuildingArea',	'YearBuilt'	,	'Lattitude',	'Longtitude'	,'Propertycount'
+ )]
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(variables_of_interest)
+
+# Create the heatmap
+corrplot(correlation_matrix, method = "color", type = "upper", tl.cex = 0.7)
+
+```
+
+correlation  matrix
+
+
+```{r}
+# Select the variables of interest
+variables_of_interest <- data[,c('Price','Rooms'		,	'Distance',	'Postcode',	'Bedroom2',	'Bathroom'	,'Car'	,'Landsize',	'BuildingArea',	'YearBuilt'	,	'Lattitude',	'Longtitude'	,'Propertycount'
+ )]
+# Calculate the correlation matrix
+correlation_matrix <- cor(variables_of_interest)
+
+# Print the correlation matrix as a table
+print(correlation_matrix)
+
+```
+
+
+
+
+
+Linear Regression
+
+data types
+```{r}
+# Assuming 'data' is a data frame in R
+sapply(data, class)
+
+```
+
+
+```{r}
+install.packages("caTools")
+```
+
+
+```{r}
+# Assuming 'data' is your data frame
+set.seed(123)  # For reproducibility
+sample_indices <- sample(nrow(data), nrow(data) * 0.7)  # Split data into 70% training and 30% testing
+train_data <- data[sample_indices, ]
+test_data <- data[-sample_indices, ]
+
+```
+
+
+```{r}
+# Perform stepwise regression for feature selection
+# Assuming you want to perform forward selection
+initial_model <- lm(Price ~ 1, data = train_data)  # Start with an intercept-only model
+
+final_model <- step(initial_model, direction = "forward", scope = formula(~ .))
+
+
+```
+
+
+
+
+```{r}
+# Train the final model with selected features
+final_model <- lm(Price ~ Rooms + Distance + Postcode + Bedroom2 + Bathroom + Car + Landsize + BuildingArea + YearBuilt + Lattitude + Longtitude + Propertycount, data = train_data)
+
+```
+
+
+```{r}
+# Make predictions on the test data
+predictions <- predict(final_model, newdata = test_data)
+
+# Assess the model's performance
+mse <- mean((test_data$SALE.PRICE - predictions)^2)
+r_squared <- 1 - (sum((test_data$SALE.PRICE - predictions)^2) / sum((test_data$SALE.PRICE - mean(test_data$SALE.PRICE))^2))
+
+```
+
+```{r}
+# View the model summary
+summary(final_model)
+
+```
+
+
+```{r}
+# Fit the linear regression model
+final_model <- lm(log(Price) ~ Rooms + Distance + Postcode + Bedroom2 + Bathroom + Car + Landsize + BuildingArea + YearBuilt + Lattitude + Longtitude + Propertycount, data = train_data)
+
+# Make predictions
+predictions <- predict(final_model, newdata = test_data)  # Replace test_data with your test dataset
+
+# Apply the inverse log transformation to get back to the original scale
+predicted_prices <- exp(predictions)
+
+summary(final_model)
+
+```
+
+Histogram and QQ Plot for Residuals:
+```{r}
+# Obtain the residuals
+residuals <- residuals(final_model)
+
+# Create a histogram
+hist(residuals, main = "Histogram of Residuals")
+
+# Create a QQ plot
+qqnorm(residuals)
+qqline(residuals)
+
+
+
+# Normal Probability Plot
+qqplot(data$Price,residuals)
+abline(h = 0, lty = 2, col = 2)
+#Kernel Density Plot for Residuals:
+
+# Kernel Density Plot
+plot(density(residuals), main = "Kernel Density of Residuals")
+#Shapiro-Wilk Normality Test:
+#You can perform a formal Shapiro-Wilk test for normality:
+
+
+shapiro.test(residuals)
+```
+
+
+These plots and the Shapiro-Wilk test will help you assess the normality of the residuals. If the residuals closely follow a straight line in the QQ plot, have a symmetric histogram, and the p-value from the Shapiro-Wilk test is not significant (p > 0.05), it suggests that the assumption of normality is reasonable.
+
+
