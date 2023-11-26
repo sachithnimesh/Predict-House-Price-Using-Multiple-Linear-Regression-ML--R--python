@@ -1,0 +1,744 @@
+---
+title: "CaseStudy"
+date: "2023-09-02"
+output:
+  pdf_document: default
+  html_document: default
+---
+Load the Partially cleaned data set
+```{r}
+life=read.csv("CleanedData.csv")
+library(Amelia)
+```
+
+Check the structure of data
+```{r}
+str(life)
+summary(life)
+
+```
+Data Transformation
+Selecting and Adjusting Variables
+1.Remove Country and Year variables.
+2. Discretize HepatitisB,Polio,Diphtheria numerical variables into categorical variables.
+```{r}
+library(dplyr)
+
+life2 <- life %>%
+  select(-Country, -Year) %>%
+  mutate(HepatitisB = ifelse(HepatitisB < 90, "<90% Covered", ">=90% Covered"),
+         Polio = ifelse(Polio < 90, "<90% Covered", ">=90% Covered"),
+         Diphtheria = ifelse(Diphtheria < 90, "<90% Covered", ">=90% Covered"),
+         HepatitisB = as.factor(HepatitisB),
+         Polio = as.factor(Polio),
+         Diphtheria = as.factor(Diphtheria))
+
+str(life2)
+```
+Check for linearity and multicollinearity
+1.Scatterplots
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+
+# Create scatter plots
+s1 <- ggplot(life, aes(x = AdultMortality, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Adult Mortality")
+
+s2 <- ggplot(life, aes(x = InfantDeaths, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Infant Deaths vs. Life Expectancy")
+
+s3 <- ggplot(life, aes(x = Alchol, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Alcho. vs. Life Expectancy")
+
+s4 <- ggplot(life, aes(x = PercentageExpenditure, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Percentage Expenditure")
+
+s5 <- ggplot(life, aes(x = UnderFiveDeaths, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Under Five Deaths")
+
+s6 <- ggplot(life, aes(x = TotalExpenditure, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Total Expenditure")
+
+s7 <- ggplot(life, aes(x = HIV.AIDS , y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "HIV AIDS")
+
+s8 <- ggplot(life, aes(x = GDP, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "GDP")
+
+s9 <- ggplot(life, aes(x = Population, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Population")
+
+s10 <- ggplot(life, aes(x =Thinness10.19Years , y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Thinness 10-19 Years")
+
+s11 <- ggplot(life, aes(x =Thinness1.9Years , y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Thinness 1-9 Years")
+
+s12 <- ggplot(life, aes(x = IncomeCompositionOfResources, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Income Composition Of Resources")
+
+s13 <- ggplot(life, aes(x = Schooling, y = LifeExpectancy)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Schooling")
+
+# Arrange the plots in a grid
+grid.arrange(s1, s2, s3, s4, s5,s6,nrow=3)
+
+# Arrange the plots in a grid
+grid.arrange(s7, s8, s9, s10, s11,s12,s13,nrow=3)
+
+
+
+```
+Several predictors show significant linear relationships with the dependent variable life expectancy.
+
+Correlation Analysis
+
+Pearson Correlation coefficient: To measure linear relationships based on the assumption that variables are normally distributed.
+
+Spearman Correlation Coefficient: To measure monotone relationships. Non-parametric test
+
+Pearson Correlation
+
+```{r}
+library(GGally)
+data_num <- life2 %>% 
+                      select_if(is.numeric)
+
+ggcorr(data_num, 
+       label = T, 
+       label_size = 2,
+       label_round = 2,
+       hjust = 1,
+       size = 3, 
+       color = "royalblue",
+       layout.exp = 5,
+       low = "green3", 
+       mid = "gray95", 
+       high = "darkorange",
+       name = "Correlation")
+```
+Spearmann Correlation Coefficient
+
+```{r}
+library(GGally)
+data_num <- life2 %>% 
+                      select_if(is.numeric)
+
+ggcorr(data_num,method=c("everything","spearman"),
+       label = T, 
+       label_size = 2,
+       label_round = 2,
+       hjust = 1,
+       size = 3, 
+       layout.exp = 5,
+       name = "Correlation")
+```
+
+Distribution of Life Expectancy among different categories of categorical variables
+1. Status
+2. HepatitisB
+3. Diphtheria
+4. Polio
+
+1. Status
+Counts
+```{r}
+life2 %>% 
+          group_by(Status) %>% 
+          summarise(count = n()) %>% 
+mutate(percentage = paste0(round(count/sum(count)*100,2), "%"))
+```
+Distribution of Life Expectancy
+```{r}
+library(ggplot2)
+plot1 <-  ggplot(life2, aes(x=Status, y = LifeExpectancy, fill = Status)) +
+                geom_boxplot() +
+                scale_fill_manual(values=c("green", "darkorange")) +
+                labs(x = "Development Status", y = "Life Expectancy (Age)") +
+                theme(legend.position = "none")
+
+
+plot1
+```
+
+2. HepatitisB
+
+Counts
+```{r}
+life2 %>% 
+          group_by(HepatitisB) %>% 
+          summarise(count = n()) %>% 
+          mutate(percentage = paste0(round(count/sum(count)*100, 2), "%"))
+```
+
+Distribution of Life Expectancy
+```{r}
+plot2 <-  ggplot(life2, aes(x=HepatitisB, y = LifeExpectancy, fill = HepatitisB)) +
+                geom_boxplot() +
+                scale_fill_manual(values=c("blue3", "darkblue")) +
+                labs(x = "Hepatitis B Coverage", y = "Life Expectancy (Age)") +
+                theme(legend.position = "none")
+
+
+plot2
+```
+
+3. Polio
+
+Counts
+```{r}
+life2 %>% 
+                 group_by(Polio) %>% 
+                 summarise(count = n()) %>% 
+                 mutate(percentage = paste0(round(count/sum(count)*100, 2), "%"))
+```
+
+Distribution of Life Expectancy
+```{r}
+plot3 <-  ggplot(life2, aes(x=Polio, y = LifeExpectancy, fill = Polio)) +
+                geom_boxplot() +
+                scale_fill_manual(values=c("yellow3", "darkgreen")) +
+                labs(x = "Polio Coverage", y = "Life Expectancy (Age)") +
+                theme(legend.position = "none")
+
+
+plot3
+```
+
+3. Diphtheria
+
+Counts
+```{r}
+life2 %>% 
+              group_by(Diphtheria) %>% 
+              summarise(count = n()) %>% 
+              mutate(percentage = paste0(round(count/sum(count)*100, 2), "%"))
+```
+
+Distributiob of Life Expectancy
+```{r}
+plot4 <-  ggplot(life2, aes(x=Diphtheria, y = LifeExpectancy, fill = Diphtheria)) +
+                geom_boxplot() +
+                scale_fill_manual(values=c("red3", "darkorange")) +
+                labs(x = "Diphtheria Coverage", y = "Life Expectancy (Age)") +
+                theme(legend.position = "none")
+
+
+plot4
+```
+
+ANOVA Analysis
+
+1. Status
+```{r}
+summary(aov(LifeExpectancy ~ Status, data = life2))
+```
+2. HepatitisB
+```{r}
+summary(aov(LifeExpectancy ~ HepatitisB, data = life2))
+```
+3. Polio
+```{r}
+summary(aov(LifeExpectancy ~ Polio, data = life2))
+```
+4. Diphtheria
+```{r}
+summary(aov(LifeExpectancy ~ Diphtheria, data = life2))
+```
+p-value<0.05. Thus, there is a significant diffenrence in life Expectancy between the groups.
+
+Association between Categorical Variables
+
+Development Status vs. Immunization
+
+Visualization
+
+1. HepatitisB
+```{r}
+library(ggplot2)
+
+# Create a ggplot2 object
+plot5 <- ggplot(life2, aes(x = Status, fill = HepatitisB)) +
+  geom_bar(position = "fill") + 
+  scale_fill_manual(values = c("lightblue", "darkblue")) +
+  theme(legend.position ="right")
+
+# Print the ggplot2 object
+print(plot5)
+```
+
+2. Polio
+```{r}
+# Create a ggplot2 object
+plot5 <- ggplot(life2, aes(x = Status, fill = Polio)) +
+  geom_bar(position = "fill") + 
+  scale_fill_manual(values = c("yellow3", "darkgreen")) +
+  theme(legend.position ="right")
+
+# Print the ggplot2 object
+print(plot5)
+```
+
+3. Diphtheria
+
+```{r}
+# Create a ggplot2 object
+plot5 <- ggplot(life2, aes(x = Status, fill = Diphtheria)) +
+  geom_bar(position = "fill") + 
+  scale_fill_manual(values = c("red3", "darkorange")) +
+  theme(legend.position ="right")
+
+# Print the ggplot2 object
+print(plot5)
+```
+
+Developed countries has higher vaccine coverage. Polio and Diptheria have similar patterns.
+
+Chi-squared Test
+
+1. HepatitisB
+
+```{r}
+chisq.test(table(life2$Status, life2$HepatitisB))
+```
+2. Polio
+
+```{r}
+chisq.test(table(life2$Status, life2$Polio))
+```
+3. Diphtheria
+
+```{r}
+chisq.test(table(life2$Status, life2$Diphtheria))
+```
+Suggests developed and developing countries have significantly different immunization coverage.
+
+Model Creation
+
+Full linear model
+
+```{r}
+life_model <- lm(formula = LifeExpectancy ~., data = life2)
+summary(life_model)
+```
+Selecting the best model
+Models Develpoed
+1. Backward stepwise method
+2. Forward stepwise method
+3. Both direction
+
+              Stepwise Method
+```{r}
+life_full <- lm(formula = LifeExpectancy ~., data = life2)
+life_none <- lm(formula = LifeExpectancy ~1, data = life2)
+```
+
+1. Backward
+```{r}
+model_backward <- step(life_full, direction = "backward")
+```
+```{r}
+summary(model_backward)
+```
+2. Forward
+
+```{r}
+model_forward <- step(life_none, scope = list(lower = life_none, upper = life_full) ,direction = "forward")
+```
+```{r}
+summary(model_forward)
+```
+3. Both Direction
+```{r}
+model_both <- step(life_full, scope = list(lower = life_none, upper = life_full) ,direction = "both")
+```
+```{r}
+summary(model_both)
+```
+Compare Adjusted R Squares of 3 models
+
+```{r}
+data.frame(model = c("model_backward","model_forward","model_both"), 
+           AdjRsquare = c(summary(model_backward)$adj.r.square,
+                          summary(model_forward)$adj.r.square,
+                          summary(model_both)$adj.r.square))
+```
+Choose model_backward
+
+Error Check
+
+Create prediction model
+
+```{r}
+life_pred <- predict(model_backward, life2)
+```
+
+Check Errors by multiple methods
+
+```{r}
+custom_MSE <- function(predictions, actuals) {
+  mean((predictions - actuals)^2)
+}
+
+custom_RMSE <- function(predictions, actuals) {
+  sqrt(mean((predictions - actuals)^2))
+}
+
+custom_MAE <- function(predictions, actuals) {
+  mean(abs(predictions - actuals))
+}
+
+custom_MAPE <- function(predictions, actuals) {
+  mean(abs((predictions - actuals) / actuals)) * 100
+}
+
+# Calculate error metrics
+MSE_value <- custom_MSE(life_pred, life2$LifeExpectancy)
+RMSE_value <- custom_RMSE(life_pred, life2$LifeExpectancy)
+MAE_value <- custom_MAE(life_pred, life2$LifeExpectancy)
+MAPE_value <- custom_MAPE(life_pred, life2$LifeExpectancy)
+
+# Create a data frame
+error_data <- data.frame(
+  Method = c("MSE", "RMSE", "MAE", "MAPE"),
+  Error.Value = c(MSE_value, RMSE_value, MAE_value, MAPE_value)
+)
+
+# Display the error data frame
+print(error_data)
+```
+```{r}
+range(life2$LifeExpectancy)
+```
+Error from every method is small compared to range of the dependent variable. Possible to assume predicted values and actual values are not far away fron each other.
+
+Checking Regression Assumptions
+
+Normality Test
+
+Visualization
+
+```{r}
+hist(model_backward$residuals, breaks = 20)
+```
+
+```{r}
+plot(model_backward, which = 2)
+```
+
+Shapiro Test
+
+```{r}
+shapiro.test(model_backward$residuals)
+library(olsrr)
+ols_test_normality(model_backward$residuals)
+```
+p-value < 0.05
+
+Try data transformation
+  1. log transformation
+  2. boxcox transformation
+  
+```{r}
+log_life <- lm(formula = log1p(LifeExpectancy) ~ Status + log1p(AdultMortality) + log1p(InfantDeaths) + 
+                                                  log1p(Alchol) + log1p(PercentageExpenditure) +  log1p(UnderFiveDeaths) + Polio + log1p(HIV.AIDS) + log1p(Thinness1.9Years) +                                                           log1p(IncomeCompositionOfResources) + log1p(Schooling), data = life2)
+summary(log_life)
+```
+Improved adjusted R^2
+
+Perform backward stepwise on log_life
+
+```{r}
+model_backward2 <- step(log_life, direction = "backward")
+```
+```{r}
+summary(model_backward2)
+```
+
+Adjusted R^2 is unchaged. Residual standard error has increased.
+Use log_life model.
+
+2. boxcox transformation
+
+```{r}
+bc <- MASS::boxcox(model_backward) # boxcox the model_backward
+```
+
+```{r}
+lambda <- bc$x[which.max(bc$y)] # choose the best lambda
+
+powerTransform <- function(y, lambda1, lambda2 = NULL, method = "boxcox") {
+
+  boxcoxTrans <- function(x, lam1, lam2 = NULL) {
+
+    # if we set lambda2 to zero, it becomes the one parameter transformation
+    lam2 <- ifelse(is.null(lam2), 0, lam2)
+
+    if (lam1 == 0L) {
+      log(y + lam2)
+    } else {
+      (((y + lam2)^lam1) - 1) / lam1
+    }
+  }
+
+  switch(method
+         , boxcox = boxcoxTrans(y, lambda1, lambda2)
+         , tukey = y^lambda1
+  )
+}
+
+
+# re-run with transformation
+boxcox_life <- lm(powerTransform(LifeExpectancy, lambda) ~ Status + AdultMortality + InfantDeaths + 
+                                                            Alchol + PercentageExpenditure +UnderFiveDeaths + Polio +  HIV.AIDS + Thinness1.9Years + 
+                                                            IncomeCompositionOfResources + Schooling, data = life2)
+
+summary(boxcox_life)
+```
+Adjusted R^2 reduced.
+Select model_backward2
+
+Second Normality Test
+
+Visulaization
+
+```{r}
+hist(log_life$residuals, breaks = 20)
+```
+
+```{r}
+plot(log_life,which=2)
+```
+
+```{r}
+library(olsrr)
+ols_test_normality(log_life$residuals)
+```
+```{r}
+library(olsrr)
+ols_test_normality(model_backward2$residuals)
+```
+
+
+p-value<0.05. Distribution of residuals is different significantly from normal distribution.
+
+Treat Outliers to achieve normality
+  1. Remove
+  2. Winsorize
+
+""
+
+1. Removing outliers from Life Expectancy
+
+```{r}
+outliers_out <- boxplot(life2$LifeExpectancy, plot = F)$out # untuk mendaptkan outlier
+life_outliers_removed <- life2[-which(life2$LifeExpectancy %in% outliers_out), ] # remove outlier dari data
+str(life_outliers_removed)
+summary(life_outliers_removed)
+```
+After removing outliers in life expectancy the minimum life ex
+
+
+Visualize Box plot
+
+```{r}
+boxplot(life_outliers_removed$LifeExpectancy, ylab = "Life Expectancy (Age)")
+```
+
+Still few outliers exist.
+
+Create Backward model from outliers removed data 
+
+```{r}
+log_life2 <- lm(formula = log1p(LifeExpectancy) ~ Status + log1p(AdultMortality) + log1p(InfantDeaths) + 
+                                                  log1p(Alchol) + log1p(PercentageExpenditure) +  log1p(UnderFiveDeaths) + Polio + log1p(HIV.AIDS) + log1p(Thinness1.9Years) +                                                           log1p(IncomeCompositionOfResources) + log1p(Schooling), data = life_outliers_removed)
+summary(log_life2)
+```
+```{r}
+model_backward3 <- step(log_life2, direction = "backward")
+```
+```{r}
+summary(model_backward3)
+```
+Third Normality Test
+
+```{r}
+library(olsrr)
+ols_test_normality(log_life2$residuals)
+```
+```{r}
+library(olsrr)
+ols_test_normality(model_backward3$residuals)
+```
+Visualization
+
+```{r}
+hist(model_backward3$residuals, breaks = 20)
+```
+
+```{r}
+plot(model_backward3,which=2)
+```
+
+For model_backward3 Histogram, and normal q-q plot shows significant normal distribution of residuals.Kolmogorov Smirnov test returns p-value greater than 0.005.(Though it is less than 0.05 better comapred to previous) Thus, we can consider out of the developed models model_backward3 is most likely to satisfy normality assumption. Thus select model_backward3 for further analysis. 
+
+To construct model_backward3, we remove outliers in life expectancy variable. Then the minimum life expectancy recorded became 48.40. But the data removed can not be considered missinformation. There are countries which have life expectancy less than 48.40. 
+Limitation: The model may not be accurate for countries with life expectancy less than 48.40
+
+Homoscedasticity
+
+Visualization
+```{r}
+par(mfrow=c(2,1))
+plot(model_backward3, which = c(1:4))
+
+
+```
+The residuals seemed randomly scattered around the fitted line.
+By visualization, Homoscadasticity looked achieved.
+
+Statistical tests
+
+Breusch-Pagan Test
+
+```{r}
+library(lmtest)
+bptest(model_backward3)
+```
+```{r}
+ols_test_breusch_pagan(model_backward3)
+```
+P values are less than 0.05. Can reject the null hypothesis: Data is homoscedastic. Thus data is not homoscedastic.Variance of residuals is not constant.
+
+Multicollinearity
+
+VIF: Variance of regression coefficent inflated due to collinearity.
+
+
+```{r}
+library(car)
+vif(model_backward3)
+```
+
+
+```{r}
+```
+log1p(InfantDeaths) is not much relatively statistically significant like log1p(UnderFiveDeaths). Consider models removing just one and both the variables since their VIF>10.
+
+```{r}
+log_life3 <- lm(formula = log1p(LifeExpectancy) ~ Status + log1p(AdultMortality) + 
+                                                  log1p(Alchol) + log1p(PercentageExpenditure) +  log1p(UnderFiveDeaths) + Polio + log1p(HIV.AIDS) + log1p(Thinness1.9Years) +                                                           log1p(IncomeCompositionOfResources) + log1p(Schooling), data = life_outliers_removed)
+summary(log_life3)
+```
+```{r}
+model_backward4 <- step(log_life3, direction = "backward")
+```
+```{r}
+summary(model_backward4)
+```
+```{r}
+library(car)
+vif(model_backward4)
+```
+All VIFs are less than 10. Indepedent variables are not correlated with eaxh other.
+
+Check Normality and Homoscedasticity again
+
+```{r}
+ols_test_normality(model_backward4$residuals)
+```
+```{r}
+library(lmtest)
+bptest(model_backward4)
+ols_test_breusch_pagan(model_backward4)
+```
+p-value of the Kolmogorov-Smirnov normality test has reduced below 0.05.Homoskedasticity is not acieved. 
+
+Normality of residuals ensures accuracy of standard errors of the regression coefficients. The standard errors are important in making inferences about the population. (ex:confidence intervals, p-values).This results inaccurate inferences.
+
+Avoiding multicollinearity is important to achieve stable regression coefficients.
+
+Giving priority to normality assumption select model_backward3
+
+Linearity Test
+
+```{r}
+library(dplyr)
+cor.test.all <- function(data,target) {
+  names <- names(data)
+  df <- NULL
+  for (i in 1:length(names)) {
+    y <- target
+    x <- names[[i]]
+    p_value <- cor.test(data[,y], data[,x])[3]
+    temp <- data.frame(x = x,
+                       y = y,
+                       p_value = as.numeric(p_value))
+    df  <- rbind(df,temp)
+  }
+  return(df)
+}
+
+data_num2 <- life2 %>% 
+                      select(LifeExpectancy, Status, AdultMortality, InfantDeaths, Alchol, PercentageExpenditure, HIV.AIDS, Thinness1.9Years, UnderFiveDeaths,
+                                     IncomeCompositionOfResources, Schooling) %>%  # select only variables in model_backward
+                              select_if(is.numeric)
+
+p_value <- cor.test.all(data_num2, "LifeExpectancy")
+p_value %>% 
+            filter(p_value > 0.05)
+```
+
+
+Model_backward3
+
+```{r}
+# Get the confidence intervals
+confint(model_backward3, level = 0.95)
+```
+```{r}
+summary(model_backward3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
